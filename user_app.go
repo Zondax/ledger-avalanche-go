@@ -146,24 +146,34 @@ func (ledger *LedgerAvalanche) Sign(pathPrefix string, signingPaths []string, me
 		paths = append(paths, changePaths...)
 		paths = RemoveDuplicates(paths)
 	}
+
+	serializedPath, err := SerializePath(pathPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	payloadType := PAYLOAD_INIT
+	p2 := FIRST_MESSAGE
+	header := []byte{CLA, INS_SIGN, byte(payloadType), byte(p2), byte(len(serializedPath))}
+	bytesToSend := append(header, serializedPath...)
+	_, err = ledger.api.Exchange(bytesToSend)
+	if err != nil {
+		return nil, errors.New("command rejected")
+	}
+
 	msg := ConcatMessageAndChangePath(message, paths)
 
 	for i := 0; i < len(msg); i += CHUNK_SIZE {
 		end := i + CHUNK_SIZE
+		payloadType := PAYLOAD_ADD
+		p2 := 0
+
 		if end > len(msg) {
 			end = len(msg)
+			payloadType = PAYLOAD_LAST
 		}
 		chunk := msg[i:end]
 		chunkSize := end - i
-
-		payloadType := PAYLOAD_ADD
-		p2 := NEXT_MESSAGE
-		if i == 0 {
-			payloadType = PAYLOAD_INIT
-			p2 = FIRST_MESSAGE
-		} else if i >= len(msg) {
-			payloadType = PAYLOAD_LAST
-		}
 
 		header := []byte{CLA, INS_SIGN, byte(payloadType), byte(p2), byte(chunkSize)}
 		bytesToSend := append(header, chunk...)
