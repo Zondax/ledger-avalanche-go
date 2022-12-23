@@ -29,6 +29,9 @@ import (
 // Ledger Test Mnemonic: equip will roof matter pink blind book anxiety banner elbow sun young
 
 func Test_UserFindLedger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -39,6 +42,9 @@ func Test_UserFindLedger(t *testing.T) {
 }
 
 func Test_UserGetVersion(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -56,6 +62,9 @@ func Test_UserGetVersion(t *testing.T) {
 }
 
 func Test_UserGetPublicKey(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -92,6 +101,9 @@ func Test_UserGetPublicKey(t *testing.T) {
 }
 
 func Test_UserGetPublicKeyETH(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -128,6 +140,9 @@ func Test_UserGetPublicKeyETH(t *testing.T) {
 }
 
 func Test_UserPK_HDPaths(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -188,6 +203,9 @@ func Test_UserPK_HDPaths(t *testing.T) {
 //}
 
 func Test_UserSign(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -279,6 +297,9 @@ func Test_UserSign(t *testing.T) {
 }
 
 func Test_UserSignHash(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	userApp, err := FindLedgerAvalancheApp()
 	if err != nil {
 		t.Fatalf(err.Error())
