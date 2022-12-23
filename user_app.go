@@ -18,6 +18,9 @@ package ledger_avalanche_go
 
 import (
 	"errors"
+	"fmt"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
 	"github.com/zondax/ledger-go"
 )
 
@@ -197,6 +200,31 @@ func (ledger *LedgerAvalanche) Sign(pathPrefix string, signingPaths []string, me
 	return SignAndCollect(signingPaths, ledger)
 }
 
+func (ledger *LedgerAvalanche) SignHash(pathPrefix string, signingPaths []string, hash []byte) (*ResponseSign, error) {
+	if len(hash) != HASH_LEN {
+		return nil, errors.New("wrong hash size")
+	}
+
+	serializedPath, err := SerializePath(pathPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	header := []byte{CLA, INS_SIGN_HASH, FIRST_MESSAGE, byte(0x00), byte(len(serializedPath) + len(hash))}
+	bytesToSend := append(header, serializedPath...)
+	bytesToSend = append(bytesToSend, hash...)
+	firstResponse, err := ledger.api.Exchange(bytesToSend)
+
+	if err != nil {
+		return nil, errors.New("command rejected")
+	}
+	if len(firstResponse) != 0 {
+		return nil, errors.New("wrong response")
+	}
+
+	return SignAndCollect(signingPaths, ledger)
+}
+
 func SignAndCollect(signingPaths []string, ledger *LedgerAvalanche) (*ResponseSign, error) {
 	// Where each pair path_suffix, signature are stored
 	signatures := make(map[string][]byte)
@@ -213,25 +241,69 @@ func SignAndCollect(signingPaths []string, ledger *LedgerAvalanche) (*ResponseSi
 		}
 
 		// Send path to sign hash that should be in device's ram memory
-		header := []byte{CLA, INS_SIGN_HASH, byte(p1), byte(0x00)}
+		header := []byte{CLA, INS_SIGN_HASH, byte(p1), byte(0x00), byte(len(pathBuf))}
 		bytesToSend := append(header, pathBuf...)
 		response, err := ledger.api.Exchange(bytesToSend)
 
 		if err != nil {
 			return nil, err
 		}
-
-		errorCodeData := response[len(response)-2:]
-		returnCode := LedgerError(int(errorCodeData[0])*256 + int(errorCodeData[1]))
-
-		if returnCode == NoErrors && len(response) > 2 {
-			signatures[suffix] = response[:len(response)-2]
-		} else if returnCode != NoErrors {
-			return nil, errors.New("signing hash failed")
-		}
+		signatures[suffix] = response
 	}
 
 	return &ResponseSign{nil, signatures}, nil
+}
+
+func (ledger *LedgerAvalanche) VerifyMultipleSignatures(response ResponseSign, messageHash []byte, rootPath string, signingPaths []string, hrp string, chainID string) error {
+	if len(response.Signature) != len(signingPaths) {
+		return errors.New("sizes of signatures and paths don't match")
+	}
+
+	for _, suffix := range signingPaths {
+		path := fmt.Sprintf("%s/%s", rootPath, suffix)
+
+		publicKeyBytes, _, err := ledger.GetPubKey(path, false, hrp, chainID)
+		if err != nil {
+			return errors.New("error getting the pubkey")
+		}
+
+		hexString := fmt.Sprintf("%x", publicKeyBytes)
+		fmt.Println(hexString)
+
+		sigLen := len(response.Signature[suffix])
+		verified := VerifySignature(publicKeyBytes, messageHash, response.Signature[suffix][:sigLen-1])
+
+		if !verified {
+			return errors.New("[VerifySig] Error verifying signature: ")
+		}
+	}
+	return nil
+}
+
+// VerifySignature checks that the given public key created signature over hash.
+// The public key should be in compressed (33 bytes) or uncompressed (65 bytes) format.
+// The signature should have the 64 byte [R || S] format.
+func VerifySignature(pubkey, hash, signature []byte) bool {
+	if len(signature) != 64 {
+		return false
+	}
+	var r, s btcec.ModNScalar
+	if r.SetByteSlice(signature[:32]) {
+		return false // overflow
+	}
+	if s.SetByteSlice(signature[32:]) {
+		return false
+	}
+	sig := ecdsa.NewSignature(&r, &s)
+	key, err := btcec.ParsePubKey(pubkey)
+	if err != nil {
+		return false
+	}
+	// Reject malleable signatures. libsecp256k1 does this check but btcec doesn't.
+	if s.IsOverHalfOrder() {
+		return false
+	}
+	return sig.Verify(hash, key)
 }
 
 func RemoveDuplicates(elements []string) []string {

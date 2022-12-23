@@ -17,11 +17,13 @@
 package ledger_avalanche_go
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 // Ledger Test Mnemonic: equip will roof matter pink blind book anxiety banner elbow sun young
@@ -195,9 +197,6 @@ func Test_UserSign(t *testing.T) {
 	rootPath := "m/44'/9000'/0'"
 	signers := []string{"0/0", "5/8"}
 
-	//rawData, _ := hex.DecodeString("000000000000000005ab68eb1ee142a05cfe768c36e11f0b596db5a3c6c77aabe665dad9e638ca94f7000000023d9bda0ed1d7613330cf680efdeb1a42159eb38791dad29510c96f7d28f61bbe2aa00000000000700000000000003e800000000000000000000000100000000000000017f671c730d4807c29ea19b19a23c700b198f8b513d9bda0ed1d7613330cf680efdeb1a42159eb38791dad29510c96f7d28f61bbe2aa000000000007000000000000006acbd80000000000000000000000000000001000000000000001203e58b754eeb92e7a5792c59a693323cd9994942594162617a7a723031372d30322d32335431353a34363a32315a")
-	//rawData, _ := hex.DecodeString("000000000000000005ab68eb1ee142a05cfe768c36e11f0b596db5a3c6c77aabe665dad9e638ca94f7000000023d9bda0ed1d7613330cf680efdeb")
-	//simpleTransferData := []byte(rawData)
 	simpleTransferData := []byte{
 		0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
@@ -267,33 +266,42 @@ func Test_UserSign(t *testing.T) {
 		return
 	}
 
-	//// Verify Signature
-	//pubKey, err := userApp.GetPublicKeySECP256K1(path)
-	//if err != nil {
-	//	t.Fatalf("Detected error, err: %s\n", err.Error())
-	//}
-	//
-	//if err != nil {
-	//	t.Fatalf("[GetPK] Error: " + err.Error())
-	//	return
-	//}
-	//
-	//pub2, err := btcec.ParsePubKey(pubKey[:], btcec.S256())
-	//if err != nil {
-	//	t.Fatalf("[ParsePK] Error: " + err.Error())
-	//	return
-	//}
-	//
-	//sig2, err := btcec.ParseDERSignature(signature[:], btcec.S256())
-	//if err != nil {
-	//	t.Fatalf("[ParseSig] Error: " + err.Error())
-	//	return
-	//}
-	//
-	//hash := sha256.Sum256(message)
-	//verified := sig2.Verify(hash[:], pub2)
-	//if !verified {
-	//	t.Fatalf("[VerifySig] Error verifying signature: " + err.Error())
-	//	return
-	//}
+	hrp := ""
+	chainID := ""
+	h := sha256.New()
+	h.Write([]byte(simpleTransferData))
+	msgHash := h.Sum(nil)
+
+	err = userApp.VerifyMultipleSignatures(*response, msgHash, rootPath, signers, hrp, chainID)
+	if err != nil {
+		t.Fatalf("Detected error, err: %s\n", err.Error())
+	}
+}
+
+func Test_UserSignHash(t *testing.T) {
+	userApp, err := FindLedgerAvalancheApp()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	defer userApp.Close()
+
+	rootPath := "m/44'/9000'/0'"
+	signingList := []string{"0/0", "4/8"}
+
+	message := "AvalancheApp"
+	h := sha256.New()
+	h.Write([]byte(message))
+	hash := h.Sum(nil)
+
+	response, err := userApp.SignHash(rootPath, signingList, hash)
+	if err != nil {
+		t.Fatalf("Detected error, err: %s\n", err.Error())
+	}
+
+	hrp := ""
+	chainID := ""
+	err = userApp.VerifyMultipleSignatures(*response, hash, rootPath, signingList, hrp, chainID)
+	if err != nil {
+		t.Fatalf("Detected error, err: %s\n", err.Error())
+	}
 }
