@@ -17,6 +17,7 @@
 package ledger_avalanche_go
 
 import (
+	"fmt"
 	"github.com/zondax/ledger-go"
 )
 
@@ -94,6 +95,10 @@ type VersionInfo struct {
 	Major   uint8
 	Minor   uint8
 	Patch   uint8
+}
+
+func (c VersionInfo) String() string {
+	return fmt.Sprintf("%d.%d.%d", c.Major, c.Minor, c.Patch)
 }
 
 type VersionRequiredError struct {

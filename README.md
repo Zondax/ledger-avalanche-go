@@ -1,10 +1,14 @@
 # ledger-avalanche-go
 
 [![Test](https://github.com/zondax/ledger-avalanche-go/actions/workflows/test.yml/badge.svg)](https://github.com/zondax/ledger-avalanche-go/actions/workflows/test.yml)
-[![Build status](https://ci.appveyor.com/api/projects/status/ovpfx35t289n3403?svg=true)](https://ci.appveyor.com/project/zondax/ledger-avalanche-go)
 
-This project is work in progress. Some aspects are subject to change.
+---
 
-# Get source
-Apart from cloning, be sure you install dep dependency management tool
-https://github.com/golang/dep
+![zondax_light](docs/zondax_light.png#gh-light-mode-only)
+![zondax_dark](docs/zondax_dark.png#gh-dark-mode-only)
+
+_Please visit our website at [zondax.ch](https://www.zondax.ch)_
+
+---
+
+This project contains a Golang package to communicate with Avalanche app for Ledger Nano S, S+ and X.
