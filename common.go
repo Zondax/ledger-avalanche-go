@@ -172,3 +172,36 @@ func SerializeHrp(hrp string) ([]byte, error) {
 
 	return append([]byte{byte(len(bufHrp))}, bufHrp...), nil
 }
+
+func RemoveDuplicates(elements []string) []string {
+	// Use map to record duplicates as we find them.
+	encountered := map[string]bool{}
+	result := []string{}
+
+	for v := range elements {
+		if encountered[elements[v]] == true {
+			// Do not add duplicate.
+		} else {
+			// Record this element as an encountered element.
+			encountered[elements[v]] = true
+			result = append(result, elements[v])
+		}
+	}
+	return result
+}
+
+func ConcatMessageAndChangePath(message []byte, path []string) []byte {
+	msg := append([]byte{}, message...)
+	if path == nil {
+		return append([]byte{0}, msg...)
+	}
+	buffer := []byte{byte(len(path))}
+	for _, element := range path {
+		pathBuf, err := SerializePathSuffix(element)
+		if err != nil {
+			return nil
+		}
+		buffer = append(buffer, pathBuf...)
+	}
+	return append(buffer, msg...)
+}
